@@ -18,6 +18,16 @@ pub struct CheckoutArgs {
     pub create: bool,
 }
 
+#[derive(Parser, Debug)]
+pub struct RemoveArgs {
+    pub name: String,
+}
+
+#[derive(Parser, Debug)]
+pub struct PushArgs {
+    pub branch: String,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     #[command(alias = "i")]
@@ -25,4 +35,10 @@ pub enum Commands {
     
     #[command(alias = "co")]
     Checkout(CheckoutArgs),
+
+    #[command(alias = "rm")]
+    Remove(RemoveArgs),
+
+    #[command()]
+    Push(PushArgs),
 }

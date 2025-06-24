@@ -1,5 +1,7 @@
 
 use std::path::{Path, PathBuf};
+use std::fs::OpenOptions;
+use std::io::Write;
 use crate::error::StackError;
 use crate::output::{error, success, info};
 use std::fs;
@@ -20,7 +22,6 @@ pub fn init(path_dir: &Path) {
 }
 
 pub struct FsStore {
-    root_dir: PathBuf,
     stacks_dir: PathBuf,
     current_stack: PathBuf,
 }
@@ -38,7 +39,7 @@ impl FsStore {
         let current_stack = stack_dir.join(CURRENT_STACK_PATH);
 
         fs::create_dir_all(&stacks_dir)?;
-        Ok(Self { root_dir, stacks_dir, current_stack })
+        Ok(Self { stacks_dir, current_stack })
     }
 
     fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
@@ -63,6 +64,21 @@ impl FsStore {
         self.stacks_dir.join(stack_name)
     }
 
+    fn get_current_stack(&self) -> Result<String, StackError> {
+        if !self.current_stack.exists() {
+            return Err(StackError::NotFound(
+                "No current stack found. Run `stack checkout -c <stack_name>` to create one.".to_string()
+            ));
+        }
+        let content = fs::read_to_string(&self.current_stack)?;
+        if content.is_empty() {
+            return Err(StackError::Invalid(
+                "Current stack is empty. Run `stack checkout -c <stack_name>` to create one.".to_string()
+            ));
+        }
+        Ok(content)
+    }
+
     pub fn create_stack(&self, stack_name: &str) -> Result<(), StackError> {
         let stack_dir = self.get_stack_path(stack_name);
         if stack_dir.exists() {
@@ -79,5 +95,31 @@ impl FsStore {
         }
         fs::write(&self.current_stack, stack_name)?;
         Ok(())
+    }
+
+    pub fn clear_current_stack(&self) -> Result<(), StackError> {
+        fs::remove_file(&self.current_stack)?;
+        Ok(())
+    }
+
+    pub fn remove_stack(&self, stack_name: &str) -> Result<(), StackError> {
+        let stack_dir = self.get_stack_path(stack_name);
+        if !stack_dir.exists() {
+            return Err(StackError::Invalid(format!("Stack {} does not exist.", stack_name)));
+        }
+        fs::remove_file(&stack_dir)?;
+        Ok(())
+    }
+
+    pub fn push_to_stack(&self, branch_name: &str) -> Result<String, StackError> {
+        let current_stack = self.get_current_stack()?;
+        let stack_dir = self.get_stack_path(&current_stack);
+
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(&stack_dir)?;
+
+        writeln!(file, "{}", branch_name)?;
+        Ok(current_stack)
     }
 }
