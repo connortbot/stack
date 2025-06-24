@@ -98,6 +98,9 @@ impl FsStore {
     }
 
     pub fn clear_current_stack(&self) -> Result<(), StackError> {
+        if !self.current_stack.exists() {
+            return Ok(());
+        }
         fs::remove_file(&self.current_stack)?;
         Ok(())
     }
