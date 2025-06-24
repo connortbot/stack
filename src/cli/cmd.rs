@@ -5,6 +5,11 @@ use super::args::{
 use crate::error::StackError;
 use crate::store::fs::{init, FsStore};
 use std::path::Path;
+use crate::output::{
+    error,
+    success,
+    info,
+};
 
 pub struct StackManager {
     store: FsStore,
@@ -16,6 +21,18 @@ impl StackManager {
     }
 
     pub fn checkout(&self, args: CheckoutArgs) -> Result<(), StackError> {
+        if args.create { 
+            self.store.create_stack(&args.name).map_err(|e| {
+                error(&e);
+                e
+            })?;
+            success(&format!("Created stack {}", args.name));
+        }
+        self.store.set_current_stack(&args.name).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        success(&format!("Checked out stack {}", args.name));
         Ok(())
     }
 }

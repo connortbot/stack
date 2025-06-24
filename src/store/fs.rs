@@ -5,6 +5,7 @@ use crate::output::{error, success, info};
 use std::fs;
 
 const STACK_DIR: &str = ".stack";
+const CURRENT_STACK_PATH: &str = "current";
 const STACKS_DIR: &str = "stacks";
 
 pub fn init(path_dir: &Path) {
@@ -19,7 +20,9 @@ pub fn init(path_dir: &Path) {
 }
 
 pub struct FsStore {
-    root_dir: PathBuf
+    root_dir: PathBuf,
+    stacks_dir: PathBuf,
+    current_stack: PathBuf,
 }
 
 impl FsStore {
@@ -32,13 +35,13 @@ impl FsStore {
         info(&format!("Stack directory found at: {:?}", root_dir));
         let stack_dir = root_dir.join(STACK_DIR);
         let stacks_dir = stack_dir.join(STACKS_DIR);
+        let current_stack = stack_dir.join(CURRENT_STACK_PATH);
 
         fs::create_dir_all(&stacks_dir)?;
-        Ok(Self { root_dir: start_dir.to_path_buf() })
+        Ok(Self { root_dir, stacks_dir, current_stack })
     }
 
     fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
-        info(&format!("Finding repository root in: {:?}", start_dir));
         let mut current = start_dir.to_path_buf();
         loop {
             let data_dir = current.join(STACK_DIR);
@@ -47,7 +50,6 @@ impl FsStore {
             }
             
             if let Some(parent) = current.parent() {
-                info(&format!("Checking parent directory: {:?}", parent));
                 current = parent.to_path_buf();
             } else {
                 return Err(StackError::NotFound(
@@ -55,5 +57,27 @@ impl FsStore {
                 ));
             }
         }
+    }
+
+    fn get_stack_path(&self, stack_name: &str) -> PathBuf {
+        self.stacks_dir.join(stack_name)
+    }
+
+    pub fn create_stack(&self, stack_name: &str) -> Result<(), StackError> {
+        let stack_dir = self.get_stack_path(stack_name);
+        if stack_dir.exists() {
+            return Err(StackError::Invalid(format!("Stack {} already exists.", stack_name)));
+        }
+        fs::write(stack_dir, "")?;
+        Ok(())
+    }
+
+    pub fn set_current_stack(&self, stack_name: &str) -> Result<(), StackError> {
+        let stack_dir = self.get_stack_path(stack_name);
+        if !stack_dir.exists() {
+            return Err(StackError::Invalid(format!("Stack {} does not exist.", stack_name)));
+        }
+        fs::write(&self.current_stack, stack_name)?;
+        Ok(())
     }
 }
