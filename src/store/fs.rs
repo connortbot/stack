@@ -64,7 +64,7 @@ impl FsStore {
         self.stacks_dir.join(stack_name)
     }
 
-    pub fn get_current_stack(&self) -> Result<String, StackError> {
+    pub fn get_current_stack_path(&self) -> Result<String, StackError> {
         if !self.current_stack.exists() {
             return Err(StackError::NotFound(
                 "No current stack found. Run `stack checkout -c <stack_name>` to create one.".to_string()
@@ -125,14 +125,43 @@ impl FsStore {
     }
 
     pub fn push_to_stack(&self, branch_name: &str) -> Result<(), StackError> {
-        let current_stack = self.get_current_stack()?;
+        let current_stack = self.get_current_stack_path()?;
         let stack_dir = self.get_stack_path(&current_stack);
 
         let mut file = OpenOptions::new()
             .append(true)
             .open(&stack_dir)?;
-
-        writeln!(file, "{}", branch_name)?;
+        
+        if fs::metadata(&stack_dir)?.len() == 0 {
+            write!(file, "{}", branch_name)?;
+        } else {
+            write!(file, "{}{}", "\n", branch_name)?;
+        }
         Ok(())
     }
+
+    pub fn pop_from_stack(&self) -> Result<String, StackError> {
+        let current_stack = self.get_current_stack_path()?;
+        let stack_dir = self.get_stack_path(&current_stack);
+    
+        let contents = fs::read_to_string(&stack_dir)?;
+        let lines: Vec<String> = contents.lines().map(|s| s.to_string()).collect();
+        
+        if lines.is_empty() {
+            return Err(StackError::Invalid("Stack is empty".to_string()));
+        }
+    
+        let last_branch = lines[lines.len() - 1].clone();
+        let new_contents = lines[..lines.len() - 1].join("\n");
+        fs::write(&stack_dir, new_contents)?;
+        
+        Ok(last_branch)
+    }
+
+
+    pub fn get_stacks(&self) -> Result<Vec<String>, StackError> {
+        Ok(fs::read_dir(&self.stacks_dir)?
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect())
+    } 
 }

@@ -19,7 +19,7 @@ pub struct CheckoutArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct RemoveArgs {
+pub struct DeleteArgs {
     pub name: String,
 }
 
@@ -27,6 +27,15 @@ pub struct RemoveArgs {
 pub struct PushArgs {
     pub branch: String,
 }
+
+#[derive(Parser, Debug)]
+pub struct PopArgs {}
+
+#[derive(Parser, Debug)]
+pub struct ListArgs {}
+
+#[derive(Parser, Debug)]
+pub struct StatusArgs {}
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
@@ -36,9 +45,18 @@ pub enum Commands {
     #[command(alias = "co")]
     Checkout(CheckoutArgs),
 
-    #[command(alias = "rm")]
-    Remove(RemoveArgs),
+    #[command(alias = "del")]
+    Delete(DeleteArgs),
 
     #[command()]
     Push(PushArgs),
+
+    #[command()]
+    Pop(PopArgs),
+
+    #[command()]
+    List(ListArgs),
+
+    #[command()]
+    Status(StatusArgs),
 }

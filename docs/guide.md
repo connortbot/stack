@@ -20,9 +20,14 @@ Shows the current stack.
 
 ## Editing Stacks
 ```bash
-stack rm <stack>
+stack delete <stack>
 ```
-Delete a stack.
+Delete a stack. `del`.
+
+```bash
+stack rm <index>
+```
+Remove branch from stack at index.
 
 ```bash
 stack pop
@@ -38,6 +43,11 @@ Insert branch to a stack at an index.
 stack push <branch>
 ```
 Push branch to top of the stack.
+
+```bash
+stack label <index> "<label>"
+```
+Label a branch in the current stack.
 
 ## Updating Stacks
 ```bash

@@ -1,7 +1,10 @@
 use super::args::{
     CheckoutArgs,
-    RemoveArgs,
+    DeleteArgs,
     PushArgs,
+    PopArgs,
+    ListArgs,
+    StatusArgs,
     Commands,
 };
 use crate::error::StackError;
@@ -11,6 +14,8 @@ use std::path::Path;
 use crate::output::{
     error,
     success,
+    show_stacks,
+    show_stack,
 };
 
 pub struct StackManager {
@@ -39,7 +44,7 @@ impl StackManager {
         Ok(())
     }
 
-    pub fn remove(&self, args: RemoveArgs) -> Result<(), StackError> {
+    pub fn delete(&self, args: DeleteArgs) -> Result<(), StackError> {
         self.store.remove_stack(&args.name).map_err(|e| {
             error(&e);
             e
@@ -62,7 +67,7 @@ impl StackManager {
             return Err(err);
         }
 
-        let current_stack = self.store.get_current_stack().map_err(|e| {
+        let current_stack = self.store.get_current_stack_path().map_err(|e| {
             error(&e);
             e
         })?;
@@ -84,6 +89,39 @@ impl StackManager {
         success(&format!("Pushed branch {} to stack {}", args.branch, current_stack));
         Ok(())
     }
+
+    pub fn pop(&self, _args: PopArgs) -> Result<(), StackError> {
+        let last_branch = self.store.pop_from_stack().map_err(|e| {
+            error(&e);
+            e
+        })?;
+        success(&format!("Popped branch {} from stack", last_branch));
+        Ok(())
+    }
+
+    pub fn list(&self, _args: ListArgs) -> Result<(), StackError> {
+        let current_stack = self.store.get_current_stack_path().unwrap_or_default();
+        let stacks = self.store.get_stacks().map_err(|e| {
+            error(&e);
+            e
+        })?;
+        show_stacks(&current_stack, &stacks);
+        Ok(())
+    }
+
+    pub fn status(&self, _args: StatusArgs) -> Result<(), StackError> {
+        let current_stack = self.store.get_current_stack_path().map_err(|e| {
+            error(&e);
+            e
+        })?;
+        
+        let stack_contents = self.store.get_stack_contents(&current_stack).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        show_stack(&stack_contents);
+        Ok(())
+    }
 }
 
 pub fn execute(cmd: Commands) -> Result<(), StackError> {
@@ -101,11 +139,20 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
             Commands::Checkout(args) => {
                 manager.checkout(args)
             }
-            Commands::Remove(args) => {
-                manager.remove(args)
+            Commands::Delete(args) => {
+                manager.delete(args)
             }
             Commands::Push(args) => {
                 manager.push(args)
+            }
+            Commands::Pop(args) => {
+                manager.pop(args)
+            }
+            Commands::List(args) => {
+                manager.list(args)
+            }
+            Commands::Status(args) => {
+                manager.status(args)
             }
         }
     }
