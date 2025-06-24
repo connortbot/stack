@@ -1,2 +1,5 @@
 # stack
-Clean PR stacking.
+Clean PR stacking. 
+```
+stack --help
+```
