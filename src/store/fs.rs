@@ -64,7 +64,7 @@ impl FsStore {
         self.stacks_dir.join(stack_name)
     }
 
-    fn get_current_stack(&self) -> Result<String, StackError> {
+    pub fn get_current_stack(&self) -> Result<String, StackError> {
         if !self.current_stack.exists() {
             return Err(StackError::NotFound(
                 "No current stack found. Run `stack checkout -c <stack_name>` to create one.".to_string()
@@ -111,7 +111,17 @@ impl FsStore {
         Ok(())
     }
 
-    pub fn push_to_stack(&self, branch_name: &str) -> Result<String, StackError> {
+    pub fn get_stack_contents(&self, stack_name: &str) -> Result<Vec<String>, StackError> {
+        let stack_dir = self.get_stack_path(stack_name);
+        if !stack_dir.exists() {
+            return Err(StackError::Invalid(format!("Stack {} does not exist.", stack_name)));
+        }
+        let contents = fs::read_to_string(&stack_dir)?;
+        let lines = contents.lines().map(|line| line.to_string()).collect();
+        Ok(lines)
+    }
+
+    pub fn push_to_stack(&self, branch_name: &str) -> Result<(), StackError> {
         let current_stack = self.get_current_stack()?;
         let stack_dir = self.get_stack_path(&current_stack);
 
@@ -120,6 +130,6 @@ impl FsStore {
             .open(&stack_dir)?;
 
         writeln!(file, "{}", branch_name)?;
-        Ok(current_stack)
+        Ok(())
     }
 }

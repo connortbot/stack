@@ -27,3 +27,4 @@ target/
 
 
 python_impl/
+.stack/

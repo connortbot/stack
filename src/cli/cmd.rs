@@ -62,7 +62,22 @@ impl StackManager {
             return Err(err);
         }
 
-        let current_stack = self.store.push_to_stack(&args.branch).map_err(|e| {
+        let current_stack = self.store.get_current_stack().map_err(|e| {
+            error(&e);
+            e
+        })?;
+
+        let stack_contents = self.store.get_stack_contents(&current_stack).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        if stack_contents.contains(&args.branch) {
+            let err = StackError::Invalid(format!("Branch {} already in stack.", args.branch));
+            error(&err);
+            return Err(err);
+        }
+
+        self.store.push_to_stack(&args.branch).map_err(|e| {
             error(&e);
             e
         })?;
