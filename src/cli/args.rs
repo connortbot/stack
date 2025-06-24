@@ -37,6 +37,18 @@ pub struct ListArgs {}
 #[derive(Parser, Debug)]
 pub struct StatusArgs {}
 
+#[derive(Parser, Debug)]
+pub struct RebaseArgs {
+    #[arg(short, long)]
+    pub from: Option<usize>,
+
+    #[arg(short, long)]
+    pub to: Option<usize>,
+
+    #[arg(long, help = "Rebase the bottom of the stack onto main branch")]
+    pub onto_main: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     #[command(alias = "i")]
@@ -59,4 +71,7 @@ pub enum Commands {
 
     #[command()]
     Status(StatusArgs),
+
+    #[command()]
+    Rebase(RebaseArgs),
 }

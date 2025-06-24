@@ -5,6 +5,7 @@ use super::args::{
     PopArgs,
     ListArgs,
     StatusArgs,
+    RebaseArgs,
     Commands,
 };
 use crate::error::StackError;
@@ -122,6 +123,42 @@ impl StackManager {
         show_stack(&stack_contents);
         Ok(())
     }
+
+    pub fn rebase(&self, args: RebaseArgs) -> Result<(), StackError> {
+        let current_stack = self.store.get_current_stack_path().map_err(|e| {
+            error(&e);
+            e
+        })?;
+
+        let stack_contents = self.store.get_stack_contents(&current_stack).map_err(|e| {
+            error(&e);
+            e
+        })?;
+
+        let last_index = stack_contents.len() - 1;
+        let from = args.from.unwrap_or(0).min(last_index);
+        let to = args.to.unwrap_or(last_index).min(last_index);
+
+        if args.onto_main && from == 0 {
+            self.git.rebase_onto("main", &stack_contents[0]).map_err(|e| {
+                error(&e);
+                e
+            })?;
+        }
+
+        for window in stack_contents[from..=to].windows(2) {
+            let base_branch = &window[0];
+            let target_branch = &window[1];
+            
+            self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
+                error(&e);
+                e
+            })?;
+        }
+
+        success("Stack rebased successfully");
+        Ok(())
+    }
 }
 
 pub fn execute(cmd: Commands) -> Result<(), StackError> {
@@ -153,6 +190,9 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
             }
             Commands::Status(args) => {
                 manager.status(args)
+            }
+            Commands::Rebase(args) => {
+                manager.rebase(args)
             }
         }
     }

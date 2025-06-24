@@ -2,7 +2,9 @@ use colored::*;
 use crate::error::StackError;
 
 pub fn error(err: &StackError) {
-    eprintln!("{} {}", "[ERROR]".red().bold(), err);
+    for line in err.to_string().lines() {
+        eprintln!("{} {}", "[ERROR]".red().bold(), line);
+    }
 }
 
 pub fn success(msg: &str) {
