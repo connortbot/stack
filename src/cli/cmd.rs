@@ -6,6 +6,7 @@ use super::args::{
 };
 use crate::error::StackError;
 use crate::store::fs::{init, FsStore};
+use crate::git::git::Git;
 use std::path::Path;
 use crate::output::{
     error,
@@ -14,11 +15,12 @@ use crate::output::{
 
 pub struct StackManager {
     store: FsStore,
+    git: Git,
 }
 
 impl StackManager {
-    pub fn new(store: FsStore) -> Result<Self, StackError> {
-        Ok(Self { store })
+    pub fn new(store: FsStore, git: Git) -> Result<Self, StackError> {
+        Ok(Self { store, git })
     }
 
     pub fn checkout(&self, args: CheckoutArgs) -> Result<(), StackError> {
@@ -51,6 +53,15 @@ impl StackManager {
     }
 
     pub fn push(&self, args: PushArgs) -> Result<(), StackError> {
+        if !self.git.check_branch_exists(&args.branch).map_err(|e| {
+            error(&e);
+            e
+        })? {
+            let err = StackError::Invalid(format!("Branch {} does not exist.", args.branch));
+            error(&err);
+            return Err(err);
+        }
+
         let current_stack = self.store.push_to_stack(&args.branch).map_err(|e| {
             error(&e);
             e
@@ -68,7 +79,8 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
         Ok(())
     } else {
         let store = FsStore::new(&current_dir)?;
-        let manager = StackManager::new(store)?;
+        let git = Git::new();
+        let manager = StackManager::new(store, git)?;
         match cmd {
             Commands::Init(_) => unreachable!(),
             Commands::Checkout(args) => {

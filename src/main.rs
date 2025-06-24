@@ -5,6 +5,7 @@ mod cli;
 mod store;
 mod error;
 mod output;
+mod git;
 
 fn main() {
     let cli = Cli::parse();
