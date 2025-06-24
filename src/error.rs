@@ -12,8 +12,6 @@ pub enum StackError {
     Invalid(String),
     // Not found errors
     NotFound(String),
-    // Generic errors
-    Other(String),
 }
 
 impl fmt::Display for StackError {
@@ -23,7 +21,6 @@ impl fmt::Display for StackError {
             Self::Git(msg) => write!(f, "git error: {}", msg),
             Self::Invalid(msg) => write!(f, "invalid: {}", msg),
             Self::NotFound(msg) => write!(f, "not found: {}", msg),
-            Self::Other(msg) => write!(f, "{}", msg),
         }
     }
 }
@@ -42,5 +39,3 @@ impl From<io::Error> for StackError {
         Self::Io(err)
     }
 }
-
-pub type Result<T> = std::result::Result<T, StackError>;
