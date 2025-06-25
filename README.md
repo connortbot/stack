@@ -80,7 +80,7 @@ For Mac:
 curl -L -o stack https://github.com/connortbot/stack/releases/latest/download/stack
 
 chmod +x stack
-mv stack /usr/local/bin/
+sudo mv stack /usr/local/bin/stack
 ```
 
 # Contributing
