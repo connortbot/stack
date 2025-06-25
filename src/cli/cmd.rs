@@ -6,6 +6,8 @@ use super::args::{
     ListArgs,
     StatusArgs,
     RebaseArgs,
+    InsertArgs,
+    RemoveArgs,
     Commands,
 };
 use crate::error::StackError;
@@ -14,6 +16,7 @@ use crate::git::git::Git;
 use crate::output::{
     error,
     success,
+    info,
     show_stacks,
     show_stack,
 };
@@ -148,7 +151,7 @@ impl StackManager {
         for window in stack_contents[from..=to].windows(2) {
             let base_branch = &window[0];
             let target_branch = &window[1];
-            
+            info(&format!("Rebasing {} onto {}", target_branch, base_branch));
             self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
                 error(&e);
                 e
@@ -156,6 +159,33 @@ impl StackManager {
         }
 
         success("Stack rebased successfully");
+        Ok(())
+    }
+
+    pub fn insert(&self, args: InsertArgs) -> Result<(), StackError> {
+        if !self.git.check_branch_exists(&args.branch).map_err(|e| {
+            error(&e);
+            e
+        })? {
+            let err = StackError::Invalid(format!("Branch {} does not exist.", args.branch));
+            error(&err);
+            return Err(err);
+        }
+
+        self.store.insert_into_stack(&args.branch, args.index).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        success(&format!("Inserted branch {} at index {}", args.branch, args.index));
+        Ok(())
+    }
+
+    pub fn remove(&self, args: RemoveArgs) -> Result<(), StackError> {
+        self.store.remove_from_stack(args.index).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        success(&format!("Removed branch at index {}", args.index));
         Ok(())
     }
 }
@@ -192,6 +222,12 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
             }
             Commands::Rebase(args) => {
                 manager.rebase(args)
+            }
+            Commands::Insert(args) => {
+                manager.insert(args)
+            }
+            Commands::Remove(args) => {
+                manager.remove(args)
             }
         }
     }

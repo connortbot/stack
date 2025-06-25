@@ -49,6 +49,19 @@ pub struct RebaseArgs {
     pub onto_main: bool,
 }
 
+#[derive(Parser, Debug)]
+pub struct InsertArgs {
+    pub branch: String,
+
+    #[arg(short, long)]
+    pub index: usize,
+}
+
+#[derive(Parser, Debug)]
+pub struct RemoveArgs {
+    pub index: usize,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     #[command(alias = "i")]
@@ -74,4 +87,10 @@ pub enum Commands {
 
     #[command()]
     Rebase(RebaseArgs),
+
+    #[command()]
+    Insert(InsertArgs),
+
+    #[command()]
+    Remove(RemoveArgs),
 }
