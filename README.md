@@ -1,9 +1,7 @@
 <div align="center">
-
-<h1 style="font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 3em; font-weight: bold; margin: 0;">
+<h1>
 stack
 </h1>
-
 </div>
 
 <p align="center">
