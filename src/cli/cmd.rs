@@ -159,6 +159,19 @@ impl StackManager {
                     error(&e);
                     e
                 })?;
+
+                let (accept, continue_op) = confirm(&format!("Push changes to {}?", stack_contents[0]))?;
+                if !accept {
+                    if !continue_op {
+                        return Ok(());
+                    }
+                } else {
+                    info(&format!("Pushing changes to {}", stack_contents[0]));
+                    self.git.push(true).map_err(|e| {
+                        error(&e);
+                        e
+                    })?;
+                }
             }
         }
 
