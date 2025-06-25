@@ -165,6 +165,24 @@ impl FsStore {
         Ok(last_branch)
     }
 
+    pub fn shift_from_stack(&self) -> Result<String, StackError> {
+        let current_stack = self.get_current_stack_path()?;
+        let stack_dir = self.get_stack_path(&current_stack);
+    
+        let contents = fs::read_to_string(&stack_dir)?;
+        let lines: Vec<String> = contents.lines().map(|s| s.to_string()).collect();
+        
+        if lines.is_empty() {
+            return Err(StackError::Invalid("Stack is empty".to_string()));
+        }
+    
+        let first_branch = lines[0].clone();
+        let new_contents = lines[1..].join("\n");
+        fs::write(&stack_dir, new_contents)?;
+        
+        Ok(first_branch)
+    }
+
     fn write_to_stack(&self, stack_path: &Path, contents: &[String]) -> Result<(), StackError> {
         let content_str = contents.join("\n");
         fs::write(stack_path, content_str)?;
