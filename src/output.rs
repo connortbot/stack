@@ -1,6 +1,6 @@
 use colored::*;
 use crate::error::StackError;
-use std::io;
+use std::io::{self, Write};
 
 pub fn error(err: &StackError) {
     for line in err.to_string().lines() {
@@ -18,6 +18,7 @@ pub fn info(msg: &str) {
 
 pub fn confirm(msg: &str) -> Result<bool, StackError> {
     println!("{} {}", "[CONFIRM]".yellow().bold(), msg);
+    io::stdout().flush()?;
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
     Ok(matches!(input.trim().to_lowercase().as_str(), "y" | "yes"))
