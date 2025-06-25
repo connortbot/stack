@@ -3,6 +3,7 @@ use super::args::{
     DeleteArgs,
     PushArgs,
     PopArgs,
+    ShiftArgs,
     ListArgs,
     StatusArgs,
     RebaseArgs,
@@ -100,6 +101,15 @@ impl StackManager {
             e
         })?;
         success(&format!("Popped branch {} from stack", last_branch));
+        Ok(())
+    }
+
+    pub fn shift(&self, _args: ShiftArgs) -> Result<(), StackError> {
+        let first_branch = self.store.shift_from_stack().map_err(|e| {
+            error(&e);
+            e
+        })?;
+        success(&format!("Shifted branch {} from stack", first_branch));
         Ok(())
     }
 
@@ -264,6 +274,9 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
             }
             Commands::Pop(args) => {
                 manager.pop(args)
+            }
+            Commands::Shift(args) => {
+                manager.shift(args)
             }
             Commands::List(args) => {
                 manager.list(args)

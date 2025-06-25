@@ -32,6 +32,9 @@ pub struct PushArgs {
 pub struct PopArgs {}
 
 #[derive(Parser, Debug)]
+pub struct ShiftArgs {}
+
+#[derive(Parser, Debug)]
 pub struct ListArgs {}
 
 #[derive(Parser, Debug)]
@@ -78,6 +81,9 @@ pub enum Commands {
 
     #[command()]
     Pop(PopArgs),
+
+    #[command()]
+    Shift(ShiftArgs),
 
     #[command()]
     List(ListArgs),
