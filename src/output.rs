@@ -1,5 +1,6 @@
 use colored::*;
 use crate::error::StackError;
+use std::io;
 
 pub fn error(err: &StackError) {
     for line in err.to_string().lines() {
@@ -13,6 +14,13 @@ pub fn success(msg: &str) {
 
 pub fn info(msg: &str) {
     println!("{} {}", "[INFO]".blue().bold(), msg);
+}
+
+pub fn confirm(msg: &str) -> Result<bool, StackError> {
+    println!("{} {}", "[CONFIRM]".yellow().bold(), msg);
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(matches!(input.trim().to_lowercase().as_str(), "y" | "yes"))
 }
 
 pub fn show_stacks(current_stack: &str, stacks: &Vec<String>) {
