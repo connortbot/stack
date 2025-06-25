@@ -17,6 +17,7 @@ use crate::output::{
     error,
     success,
     info,
+    confirm,
     show_stacks,
     show_stack,
 };
@@ -142,7 +143,10 @@ impl StackManager {
         let to = args.to.unwrap_or(last_index).min(last_index);
 
         if args.onto_main && from == 0 {
-            self.git.rebase_onto("main", &stack_contents[0]).map_err(|e| {
+            if !confirm(&format!("Rebase on main from {}?", stack_contents[0]))? {
+                return Ok(());
+            }
+            self.git.rebase_onto(&stack_contents[0], "main").map_err(|e| {
                 error(&e);
                 e
             })?;
@@ -151,6 +155,9 @@ impl StackManager {
         for window in stack_contents[from..=to].windows(2) {
             let base_branch = &window[0];
             let target_branch = &window[1];
+            if !confirm(&format!("Rebase {} onto {}?", target_branch, base_branch))? {
+                return Ok(());
+            }
             info(&format!("Rebasing {} onto {}", target_branch, base_branch));
             self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
                 error(&e);
