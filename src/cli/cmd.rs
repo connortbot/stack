@@ -11,7 +11,6 @@ use super::args::{
 use crate::error::StackError;
 use crate::store::fs::{init, FsStore};
 use crate::git::git::Git;
-use std::path::Path;
 use crate::output::{
     error,
     success,
@@ -165,7 +164,7 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
     let current_dir = std::env::current_dir()?;
     
     if let Commands::Init(_) = cmd {
-        init(Path::new("."));
+        init(&current_dir);
         Ok(())
     } else {
         let store = FsStore::new(&current_dir)?;
