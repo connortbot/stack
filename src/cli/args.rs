@@ -50,6 +50,9 @@ pub struct RebaseArgs {
 
     #[arg(long, help = "Rebase the bottom of the stack onto main branch")]
     pub onto_main: bool,
+
+    #[arg(short, long, help = "Skip confirmation")]
+    pub yes: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -63,6 +66,11 @@ pub struct InsertArgs {
 #[derive(Parser, Debug)]
 pub struct RemoveArgs {
     pub index: usize,
+}
+
+#[derive(Parser, Debug)]
+pub struct ConfigArgs {
+    pub setting: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -99,4 +107,7 @@ pub enum Commands {
 
     #[command()]
     Remove(RemoveArgs),
+
+    #[command()]
+    Config(ConfigArgs),
 }
