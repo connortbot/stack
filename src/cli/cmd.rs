@@ -16,6 +16,7 @@ use crate::git::git::Git;
 use crate::output::{
     error,
     success,
+    info,
     show_stacks,
     show_stack,
 };
@@ -150,7 +151,7 @@ impl StackManager {
         for window in stack_contents[from..=to].windows(2) {
             let base_branch = &window[0];
             let target_branch = &window[1];
-            
+            info(&format!("Rebasing {} onto {}", target_branch, base_branch));
             self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
                 error(&e);
                 e

@@ -102,7 +102,7 @@ impl Git {
             return Err(err);
         }
 
-        self.checkout(base_branch)?;
-        self.rebase(target_branch)
+        self.checkout(target_branch)?;
+        self.rebase(base_branch)
     }
 }
