@@ -142,7 +142,7 @@ impl StackManager {
         let to = args.to.unwrap_or(last_index).min(last_index);
 
         if args.onto_main && from == 0 {
-            self.git.rebase_onto("main", &stack_contents[0]).map_err(|e| {
+            self.git.rebase_onto(&stack_contents[0], "main").map_err(|e| {
                 error(&e);
                 e
             })?;
