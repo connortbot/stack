@@ -1,10 +1,6 @@
 use colored::*;
 use crate::error::StackError;
-<<<<<<< HEAD
 use std::io::{self, Write};
-=======
-use std::io;
->>>>>>> 5592375 (confirmation messages)
 
 pub fn error(err: &StackError) {
     for line in err.to_string().lines() {
