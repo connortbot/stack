@@ -1,4 +1,3 @@
-
 use std::path::{Path, PathBuf};
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -10,14 +9,40 @@ const STACK_DIR: &str = ".stack";
 const CURRENT_STACK_PATH: &str = "current";
 const STACKS_DIR: &str = "stacks";
 
+
+fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
+    let mut current = start_dir.to_path_buf();
+    loop {
+        let data_dir = current.join(STACK_DIR);
+        if data_dir.exists() {
+            return Ok(current);
+        }
+        
+        if let Some(parent) = current.parent() {
+            current = parent.to_path_buf();
+        } else {
+            return Err(StackError::NotFound(
+                "No .stack directory found. Run `stack init` to create one.".to_string()
+            ));
+        }
+    }
+}
+
 pub fn init(path_dir: &Path) {
-    let stack_dir = path_dir.join(STACK_DIR);
-    if !stack_dir.exists() {
-        let stacks_dir = stack_dir.join(STACKS_DIR);
-        fs::create_dir_all(&stacks_dir).unwrap();
-        success("Stack directory created successfully!");
-    } else {
-        error(&StackError::Invalid(format!("Stack directory already exists!")));
+    match find_repository_root(path_dir) {
+        Ok(dir) => {
+            success(&format!("Stack directory already exists at: {}", dir.display()));
+        }
+        Err(_) => {
+            let stack_dir = path_dir.join(STACK_DIR);
+            if !stack_dir.exists() {
+                let stacks_dir = stack_dir.join(STACKS_DIR);
+                fs::create_dir_all(&stacks_dir).unwrap();
+                success("Stack directory created successfully!");
+            } else {
+                error(&StackError::Invalid("Stack directory already exists!".to_string()));
+            }
+        }
     }
 }
 
@@ -28,7 +53,7 @@ pub struct FsStore {
 
 impl FsStore {
     pub fn new(start_dir: &Path) -> Result<Self, StackError> {
-        let root_dir = Self::find_repository_root(start_dir)
+        let root_dir = find_repository_root(start_dir)
         .map_err(|e| {
             error(&e);
             e
@@ -40,24 +65,6 @@ impl FsStore {
 
         fs::create_dir_all(&stacks_dir)?;
         Ok(Self { stacks_dir, current_stack })
-    }
-
-    fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
-        let mut current = start_dir.to_path_buf();
-        loop {
-            let data_dir = current.join(STACK_DIR);
-            if data_dir.exists() {
-                return Ok(current);
-            }
-            
-            if let Some(parent) = current.parent() {
-                current = parent.to_path_buf();
-            } else {
-                return Err(StackError::NotFound(
-                    "No .stack directory found. Run `stack init` to create one.".to_string()
-                ));
-            }
-        }
     }
 
     fn get_stack_path(&self, stack_name: &str) -> PathBuf {
