@@ -32,6 +32,31 @@ pub fn confirm(msg: &str) -> Result<(bool, bool), StackError> {
     Ok((accept, continue_op))
 }
 
+pub fn question_bool(msg: &str, default: bool) -> Result<bool, StackError> {
+    println!("{}", format!("[?] {} (y/n)", msg).blue().bold());
+    io::stdout().flush()?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    
+    let response = input.trim().to_lowercase();
+    match response.as_str() {
+        "y" | "yes" => Ok(true),
+        "n" | "no" => Ok(false),
+        _ => Ok(default),
+    }
+}
+
+pub fn question_string(msg: &str, default: &str) -> Result<String, StackError> {
+    println!("{}", format!("[?] {}", msg).blue().bold());
+    io::stdout().flush()?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    if input.is_empty() {
+        return Ok(default.to_string());
+    } 
+    Ok(input.trim().to_string())
+}
+
 pub fn show_stacks(current_stack: &str, stacks: &Vec<String>) {
     if stacks.is_empty() {
         info("No stacks found");

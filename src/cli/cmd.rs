@@ -9,6 +9,7 @@ use super::args::{
     RebaseArgs,
     InsertArgs,
     RemoveArgs,
+    ConfigArgs,
     Commands,
 };
 use crate::error::StackError;
@@ -22,15 +23,26 @@ use crate::output::{
     show_stacks,
     show_stack,
 };
+use crate::config::config::Config;
 
 pub struct StackManager {
     store: FsStore,
     git: Git,
+    config: Config,
 }
 
 impl StackManager {
-    pub fn new(store: FsStore, git: Git) -> Result<Self, StackError> {
-        Ok(Self { store, git })
+    pub fn new(store: FsStore, git: Git, config: Config) -> Result<Self, StackError> {
+        Ok(Self { store, git, config })
+    }
+
+    fn configured_confirmation(&self, msg: &str, config_condition: bool) -> Result<(bool, bool), StackError> {
+        if config_condition {
+            let confirmation = confirm(&format!("{}", msg))?;
+            Ok(confirmation)
+        } else {
+            Ok((true, true))
+        }
     }
 
     pub fn checkout(&self, args: CheckoutArgs) -> Result<(), StackError> {
@@ -148,19 +160,25 @@ impl StackManager {
             e
         })?;
 
+        if stack_contents.len() == 0 {
+            success("No branches in stack");
+            return Ok(());
+        }
+
         let last_index = stack_contents.len() - 1;
         let from = args.from.unwrap_or(0).min(last_index);
         let to = args.to.unwrap_or(last_index).min(last_index);
 
         if args.onto_main && from == 0 {
-            let (accept, continue_op) = confirm(&format!("Rebase on main from {}?", stack_contents[0]))?;
-            if !accept {
-                if !continue_op {
-                    return Ok(());
-                }
-            } else {
-                info("Pulling main...");
-                self.git.checkout("main").map_err(|e| {
+            let (accept, continue_op) = self.configured_confirmation(
+                &format!("Rebase on {} from {}?", self.config.MAIN_BRANCH_NAME, stack_contents[0]),
+                self.config.CONFIRMATION_ON_GIT_REBASE
+            )?;
+
+            if !continue_op { return Ok(()); }
+            if accept {
+                info(&format!("Pulling {}...", self.config.MAIN_BRANCH_NAME));
+                self.git.checkout(&self.config.MAIN_BRANCH_NAME).map_err(|e| {
                     error(&e);
                     e
                 })?;
@@ -169,17 +187,18 @@ impl StackManager {
                     e
                 })?;
                 info("Rebasing...");
-                self.git.rebase_onto(&stack_contents[0], "main").map_err(|e| {
+                self.git.rebase_onto(&stack_contents[0], &self.config.MAIN_BRANCH_NAME).map_err(|e| {
                     error(&e);
                     e
                 })?;
 
-                let (accept, continue_op) = confirm(&format!("Push changes to {}?", stack_contents[0]))?;
-                if !accept {
-                    if !continue_op {
-                        return Ok(());
-                    }
-                } else {
+                let (accept, continue_op) = self.configured_confirmation(
+                    &format!("Push changes to {}?", stack_contents[0]),
+                    self.config.CONFIRMATION_ON_GIT_PUSH
+                )?;
+
+                if !continue_op { return Ok(()); }
+                if accept {
                     info(&format!("Pushing changes to {}", stack_contents[0]));
                     self.git.push(true).map_err(|e| {
                         error(&e);
@@ -192,31 +211,34 @@ impl StackManager {
         for window in stack_contents[from..=to].windows(2) {
             let base_branch = &window[0];
             let target_branch = &window[1];
-            let (accept, continue_op) = confirm(&format!("Rebase {} onto {}?", target_branch, base_branch))?;
-            if !accept {
-                if !continue_op {
-                    return Ok(());
-                }
-                continue;
-            }
             
-            info(&format!("Rebasing {} onto {}", target_branch, base_branch));
-            self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
-                error(&e);
-                e
-            })?;
-            let (accept, continue_op) = confirm(&format!("Push changes to {}?", target_branch))?;
-            if !accept {
-                if !continue_op {
-                    return Ok(());
+            let (accept, continue_op) = self.configured_confirmation(
+                &format!("Rebase {} onto {}?", target_branch, base_branch),
+                self.config.CONFIRMATION_ON_GIT_REBASE
+            )?;
+
+            if !continue_op { return Ok(()); }
+            if accept {
+                info(&format!("Rebasing {} onto {}", target_branch, base_branch));
+                self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
+                    error(&e);
+                    e
+                })?;
+
+                let (accept, continue_op) = self.configured_confirmation(
+                    &format!("Push changes to {}?", target_branch),
+                    self.config.CONFIRMATION_ON_GIT_PUSH
+                )?;
+
+                if !continue_op { return Ok(()); }
+                if accept {
+                    info(&format!("Pushing changes to {}", target_branch));
+                    self.git.push(true).map_err(|e| {
+                        error(&e);
+                        e
+                    })?;
                 }
-                continue;
             }
-            info(&format!("Pushing changes to {}", target_branch));
-            self.git.push(true).map_err(|e| {
-                error(&e);
-                e
-            })?;
         }
 
         success("Stack rebased successfully");
@@ -249,6 +271,26 @@ impl StackManager {
         success(&format!("Removed branch at index {}", args.index));
         Ok(())
     }
+
+    pub fn config(&self, args: ConfigArgs) -> Result<(), StackError> {
+        let parts: Vec<&str> = args.setting.splitn(2, '=').collect();
+        if parts.len() != 2 {
+            let err = StackError::Invalid("Config setting must be in KEY=VALUE format".to_string());
+            error(&err);
+            return Err(err);
+        }
+
+        let key = parts[0].trim();
+        let value = parts[1].trim();
+
+        self.store.update_config(key, value).map_err(|e| {
+            error(&e);
+            e
+        })?;
+        
+        success(&format!("Updated config with {} = {}", key, value));
+        Ok(())
+    }
 }
 
 pub fn execute(cmd: Commands) -> Result<(), StackError> {
@@ -260,7 +302,8 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
     } else {
         let store = FsStore::new(&current_dir)?;
         let git = Git::new();
-        let manager = StackManager::new(store, git)?;
+        let config = store.read_config_file()?;
+        let manager = StackManager::new(store, git, config)?;
         match cmd {
             Commands::Init(_) => unreachable!(),
             Commands::Checkout(args) => {
@@ -292,6 +335,9 @@ pub fn execute(cmd: Commands) -> Result<(), StackError> {
             }
             Commands::Remove(args) => {
                 manager.remove(args)
+            }
+            Commands::Config(args) => {
+                manager.config(args)
             }
         }
     }

@@ -65,6 +65,11 @@ pub struct RemoveArgs {
     pub index: usize,
 }
 
+#[derive(Parser, Debug)]
+pub struct ConfigArgs {
+    pub setting: String,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     #[command(alias = "i")]
@@ -99,4 +104,7 @@ pub enum Commands {
 
     #[command()]
     Remove(RemoveArgs),
+
+    #[command()]
+    Config(ConfigArgs),
 }

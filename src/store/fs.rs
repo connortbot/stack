@@ -2,12 +2,14 @@ use std::path::{Path, PathBuf};
 use std::fs::OpenOptions;
 use std::io::Write;
 use crate::error::StackError;
-use crate::output::{error, success, info};
+use crate::output::{error, success, info, question_string, question_bool, warning};
 use std::fs;
+use crate::config::config::Config;
 
 const STACK_DIR: &str = ".stack";
 const CURRENT_STACK_PATH: &str = "current";
 const STACKS_DIR: &str = "stacks";
+const CONFIG_FILE: &str = "config";
 
 
 fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
@@ -28,6 +30,18 @@ fn find_repository_root(start_dir: &Path) -> Result<PathBuf, StackError> {
     }
 }
 
+fn user_configuration() -> Result<Config, StackError> {
+    let main_branch = question_string("What is your main branch name? (default: main)", "main")?;
+    let confirmation_on_git_push = question_bool("Require confirmation on push?", true)?;
+    let confirmation_on_git_rebase = question_bool("Require confirmation on rebase?", true)?;
+
+    Ok(Config {
+        MAIN_BRANCH_NAME: main_branch,
+        CONFIRMATION_ON_GIT_PUSH: confirmation_on_git_push,
+        CONFIRMATION_ON_GIT_REBASE: confirmation_on_git_rebase,
+    })
+}
+
 pub fn init(path_dir: &Path) {
     match find_repository_root(path_dir) {
         Ok(dir) => {
@@ -37,7 +51,11 @@ pub fn init(path_dir: &Path) {
             let stack_dir = path_dir.join(STACK_DIR);
             if !stack_dir.exists() {
                 let stacks_dir = stack_dir.join(STACKS_DIR);
+                let config_file = stack_dir.join(CONFIG_FILE);
                 fs::create_dir_all(&stacks_dir).unwrap();
+                
+                let config = user_configuration().unwrap();
+                fs::write(&config_file, config.to_string()).unwrap();
                 success("Stack directory created successfully!");
             } else {
                 error(&StackError::Invalid("Stack directory already exists!".to_string()));
@@ -49,6 +67,7 @@ pub fn init(path_dir: &Path) {
 pub struct FsStore {
     stacks_dir: PathBuf,
     current_stack: PathBuf,
+    config_file: PathBuf,
 }
 
 impl FsStore {
@@ -62,9 +81,10 @@ impl FsStore {
         let stack_dir = root_dir.join(STACK_DIR);
         let stacks_dir = stack_dir.join(STACKS_DIR);
         let current_stack = stack_dir.join(CURRENT_STACK_PATH);
+        let config_file = stack_dir.join(CONFIG_FILE);
 
         fs::create_dir_all(&stacks_dir)?;
-        Ok(Self { stacks_dir, current_stack })
+        Ok(Self { stacks_dir, current_stack, config_file })
     }
 
     fn get_stack_path(&self, stack_name: &str) -> PathBuf {
@@ -222,5 +242,25 @@ impl FsStore {
         Ok(fs::read_dir(&self.stacks_dir)?
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect())
-    } 
+    }
+
+    pub fn read_config_file(&self) -> Result<Config, StackError> {
+        if !self.config_file.exists() {
+            warning("No config file found.");
+            let config = user_configuration()?;
+            fs::write(&self.config_file, config.to_string())?;
+            return Ok(config);
+        }
+
+        let contents = fs::read_to_string(&self.config_file)?;
+        let config = Config::from_string(contents)?;
+        Ok(config)
+    }
+
+    pub fn update_config(&self, key: &str, value: &str) -> Result<(), StackError> {
+        let mut config = self.read_config_file()?;
+        config.set_kv(key, value);
+        fs::write(&self.config_file, config.to_string())?;
+        Ok(())
+    }
 }
