@@ -50,6 +50,9 @@ pub struct RebaseArgs {
 
     #[arg(long, help = "Rebase the bottom of the stack onto main branch")]
     pub onto_main: bool,
+
+    #[arg(short, long, help = "Skip confirmation")]
+    pub yes: bool,
 }
 
 #[derive(Parser, Debug)]

@@ -36,8 +36,8 @@ impl StackManager {
         Ok(Self { store, git, config })
     }
 
-    fn configured_confirmation(&self, msg: &str, config_condition: bool) -> Result<(bool, bool), StackError> {
-        if config_condition {
+    fn configured_confirmation(&self, msg: &str, config_condition: bool, skip_confirmation: bool) -> Result<(bool, bool), StackError> {
+        if config_condition && !skip_confirmation {
             let confirmation = confirm(&format!("{}", msg))?;
             Ok(confirmation)
         } else {
@@ -172,7 +172,8 @@ impl StackManager {
         if args.onto_main && from == 0 {
             let (accept, continue_op) = self.configured_confirmation(
                 &format!("Rebase on {} from {}?", self.config.MAIN_BRANCH_NAME, stack_contents[0]),
-                self.config.CONFIRMATION_ON_GIT_REBASE
+                self.config.CONFIRMATION_ON_GIT_REBASE,
+                args.yes
             )?;
 
             if !continue_op { return Ok(()); }
@@ -194,7 +195,8 @@ impl StackManager {
 
                 let (accept, continue_op) = self.configured_confirmation(
                     &format!("Push changes to {}?", stack_contents[0]),
-                    self.config.CONFIRMATION_ON_GIT_PUSH
+                    self.config.CONFIRMATION_ON_GIT_PUSH,
+                    args.yes
                 )?;
 
                 if !continue_op { return Ok(()); }
@@ -214,7 +216,8 @@ impl StackManager {
             
             let (accept, continue_op) = self.configured_confirmation(
                 &format!("Rebase {} onto {}?", target_branch, base_branch),
-                self.config.CONFIRMATION_ON_GIT_REBASE
+                self.config.CONFIRMATION_ON_GIT_REBASE,
+                args.yes
             )?;
 
             if !continue_op { return Ok(()); }
@@ -227,7 +230,8 @@ impl StackManager {
 
                 let (accept, continue_op) = self.configured_confirmation(
                     &format!("Push changes to {}?", target_branch),
-                    self.config.CONFIRMATION_ON_GIT_PUSH
+                    self.config.CONFIRMATION_ON_GIT_PUSH,
+                    args.yes
                 )?;
 
                 if !continue_op { return Ok(()); }
