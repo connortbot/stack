@@ -165,6 +165,40 @@ impl FsStore {
         Ok(last_branch)
     }
 
+    fn write_to_stack(&self, stack_path: &Path, contents: &[String]) -> Result<(), StackError> {
+        let content_str = contents.join("\n");
+        fs::write(stack_path, content_str)?;
+        Ok(())
+    }
+
+    pub fn insert_into_stack(&self, branch_name: &str, index: usize) -> Result<(), StackError> {
+        let current_stack = self.get_current_stack_path()?;
+        let stack_dir = self.get_stack_path(&current_stack);
+    
+        let mut contents = self.get_stack_contents(&current_stack)?;
+        if index > contents.len() {
+            return Err(StackError::Invalid(format!("Index {} is out of bounds", index)));
+        }
+
+        contents.insert(index, branch_name.to_string());
+        self.write_to_stack(&stack_dir, &contents)?;
+        
+        Ok(())
+    }
+
+    pub fn remove_from_stack(&self, index: usize) -> Result<(), StackError> {
+        let current_stack = self.get_current_stack_path()?;
+        let stack_dir = self.get_stack_path(&current_stack);
+    
+        let mut contents = self.get_stack_contents(&current_stack)?;
+        if index >= contents.len() {
+            return Err(StackError::Invalid(format!("Index {} is out of bounds", index)));
+        }
+
+        contents.remove(index);
+        self.write_to_stack(&stack_dir, &contents)?;
+        Ok(())
+    }
 
     pub fn get_stacks(&self) -> Result<Vec<String>, StackError> {
         Ok(fs::read_dir(&self.stacks_dir)?
