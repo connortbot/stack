@@ -1,14 +1,8 @@
 <div align="center">
 
-```
-          _             _    
-         | |           | |   
-      ___| |_ __ _  ___| | __
-     / __| __/ _` |/ __| |/ /
-     \__ \ || (_| | (__|   < 
-     |___/\__\__,_|\___|_|\_\
-                         
-```
+<h1 style="font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 3em; font-weight: bold; margin: 0;">
+stack
+</h1>
 
 </div>
 
