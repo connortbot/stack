@@ -150,6 +150,10 @@ impl StackManager {
                 }
             } else {
                 info("Pulling main...");
+                self.git.checkout("main").map_err(|e| {
+                    error(&e);
+                    e
+                })?;
                 self.git.pull().map_err(|e| {
                     error(&e);
                     e
