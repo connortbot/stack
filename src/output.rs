@@ -16,12 +16,20 @@ pub fn info(msg: &str) {
     println!("{} {}", "[INFO]".blue().bold(), msg);
 }
 
-pub fn confirm(msg: &str) -> Result<bool, StackError> {
-    println!("{} {}", "[CONFIRM]".yellow().bold(), msg);
+pub fn confirm(msg: &str) -> Result<(bool, bool), StackError> {
+    println!("{} {}", "[CONFIRM] (y/n/c)".yellow().bold(), msg);
     io::stdout().flush()?;
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
-    Ok(matches!(input.trim().to_lowercase().as_str(), "y" | "yes"))
+    
+    let (accept, continue_op) = match input.trim().to_lowercase().as_str() {
+        "y" | "yes" => (true, true),   // accept and continue
+        "n" | "no" => (false, false),  // don't accept and don't continue
+        "c" | "continue" => (false, true), // don't accept but continue
+        _ => (false, false),
+    };
+    
+    Ok((accept, continue_op))
 }
 
 pub fn show_stacks(current_stack: &str, stacks: &Vec<String>) {

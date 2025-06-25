@@ -70,6 +70,19 @@ impl Git {
         Ok(!output.trim().is_empty()) // empty output means branch doesn't exist
     }
 
+    pub fn pull(&self) -> Result<(), StackError> {
+        run_command("git", &["pull"])
+    }
+
+    pub fn push(&self, force: bool) -> Result<(), StackError> {
+        let args = if force {
+            vec!["push", "-f"]
+        } else {
+            vec!["push"]
+        };
+        run_command("git", &args)
+    }
+
     pub fn checkout(&self, branch_name: &str) -> Result<(), StackError> {
         if !self.check_branch_exists(branch_name)? {
             let err = StackError::Invalid(format!("Branch {} does not exist", branch_name));

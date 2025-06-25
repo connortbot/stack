@@ -143,23 +143,50 @@ impl StackManager {
         let to = args.to.unwrap_or(last_index).min(last_index);
 
         if args.onto_main && from == 0 {
-            if !confirm(&format!("Rebase on main from {}?", stack_contents[0]))? {
-                return Ok(());
+            let (accept, continue_op) = confirm(&format!("Rebase on main from {}?", stack_contents[0]))?;
+            if !accept {
+                if !continue_op {
+                    return Ok(());
+                }
+            } else {
+                info("Pulling main...");
+                self.git.pull().map_err(|e| {
+                    error(&e);
+                    e
+                })?;
+                info("Rebasing...");
+                self.git.rebase_onto(&stack_contents[0], "main").map_err(|e| {
+                    error(&e);
+                    e
+                })?;
             }
-            self.git.rebase_onto(&stack_contents[0], "main").map_err(|e| {
-                error(&e);
-                e
-            })?;
         }
 
         for window in stack_contents[from..=to].windows(2) {
             let base_branch = &window[0];
             let target_branch = &window[1];
-            if !confirm(&format!("Rebase {} onto {}?", target_branch, base_branch))? {
-                return Ok(());
+            let (accept, continue_op) = confirm(&format!("Rebase {} onto {}?", target_branch, base_branch))?;
+            if !accept {
+                if !continue_op {
+                    return Ok(());
+                }
+                continue;
             }
+            
             info(&format!("Rebasing {} onto {}", target_branch, base_branch));
             self.git.rebase_onto(target_branch, base_branch).map_err(|e| {
+                error(&e);
+                e
+            })?;
+            let (accept, continue_op) = confirm(&format!("Push changes to {}?", target_branch))?;
+            if !accept {
+                if !continue_op {
+                    return Ok(());
+                }
+                continue;
+            }
+            info(&format!("Pushing changes to {}", target_branch));
+            self.git.push(true).map_err(|e| {
                 error(&e);
                 e
             })?;
